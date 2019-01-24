@@ -33,18 +33,20 @@ u1 <- rnorm(200000)
 
 x1 <- make_phen(c(effs, 0.4), cbind(g1, u1))
 
-y1 <- make_phen(c(0.4, 0.4), cbind(x1, u1))
+y1 <- make_phen(c(0.4, 0.4), cbind(x1, u1)) ### X explains 40% of the variance in Y and U explains 40% of the variance in Y
 
 
 ## Find the significant SNPs at <5e-8
 
 dat1 <- get_effs(x1,y1,g1)
 
-table(dat1$pval.exposure < 5e-8)  ## How many SNPs have a pvalue <5e-8 (TRUE is the numebr of sig SNPs)
+table(dat1$pval.exposure < 5e-8)  ## How many SNPs have a pvalue <5e-8 (TRUE is the number of sig SNPs)
 
 # Extract the significant SNPs
 
 s1_sig <- subset(dat1, pval.exposure < 5e-8)
+dim(s1_sig) ### should be the same number of rows as significnat SNPs found above
+
 
 ## Do in sample 2
 
@@ -58,6 +60,7 @@ dat2 <- get_effs(x2,y2,g2)
 ## Extract the SNPs found in Sample 1 from Sample 2
 
 s2_snps <- subset(dat2, SNP %in% s1_sig$SNP)
+dim(s2_snps) ## Should have the same number of SNPs as s1_sig
 
 ## Run MR on these snps
 
@@ -68,7 +71,7 @@ mr(s2_snps)
 res <- mr(s2_snps, method_list="mr_ivw") 
 mr_scatter_plot(res, s2_snps) 
 
-mr_heterogeneity(s2_snps, method_list="mr_ivw")
+mr_heterogeneity(s2_snps, method_list="mr_ivw") ## There shouldnt be any heterogeneity as we have not introduced pleiotropy yet
 
 
 
