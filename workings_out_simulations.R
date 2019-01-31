@@ -64,17 +64,45 @@ pl_effs_dependent <- effect_model(10, 0.2, 0.05, model="dependent")
 
 ## I want to match the plei_effects to the snp_exp_effects 
 ## This is the bit i cant get to work...
-y1 = make_phen(c(pl_effs_dependent$plei_effect, 0.2, 0.2), cbind(pl_effs_dependent$snp_exp_effect, x1, conf)) ## This gives me the error message
+y1 = make_phen(c(pl_effs_dependent$plei_effect, 0.2, 0.2), cbind.fill(t(pl_effs_dependent$snp_exp_effect), x1, conf)) 
+## transposed the matrix and used cbind to fill, get the two right sizes for vector_of_effect_sizes and matrix_of_variables
+## However when run the make_pheno command get a table full of NaN
+
+
+# make_phen(vector_of_effect_sizes, matrix_of_variables)
+# number of rows in the vector_of_effect_sizes needs to equal the number of columns in the matrix_of_variables
+
+vector_of_effect_sizes<- c(pl_effs_independent$plei_effect, 0.2, 0.2)
+matrix_of_variables <- cbind.fill(t(pl_effs_dependent$snp_exp_effect), x1, conf)
+# These two are the right sizes and match, so why am I getting NaN? 
 
 pl_effs_independent
 pl_effs_dependent
 
 
 ## Workings
-y3 <- make_phen(c(pl_effs, 0.4, 0.4), cbind(g1[,1:5], x1, conf)) 
+y3 <- make_phen(c(pl_effs, 0.4, 0.4), cbind(g1[,1:10], x1, conf)) 
 
-c(pl_effs_independent$plei_effect, 0.2, 0.2)
-cbind(pl_effs_independent$snp_exp_effect, x1, conf)
+
+y_test <- make_phen(vector_of_effect_sizes, matrix_of_variables)
+
+c(0.3, 0.4)
+cbind(x1,x2)
+
+trans <- t(pl_effs_dependent$snp_exp_effect)
+
+## Need to make pl_effs_dependent$snp_exp_effect into columns rather than rows then can add it to the matrix
+
+
+##
+pl_effs <- choose_effects(10, 0.05)
+
+y3 <- make_phen(c(pl_effs, 0.4, 0.4), cbind(g1[,1:10], x1, conf)) 
+
+c(pl_effs, 0.4, 0.4)
+cbind(g1[,1:10], x1, conf)
+
+
 
 ## Deconstructing the effect_model funtction
 snp_exp_effect <- choose_effects(10, 0.2)
@@ -83,6 +111,24 @@ plei_effect <- snp_exp_effect[order(snp_exp_effect, decreasing=TRUE)]
 plei_effect <- plei_effect * 0.05 / 0.2
 
 plei_effect_independent <- choose_effects(10, 0.05)
+
+make_phen <- function(effs, indep, vy=1, vx=rep(1, length(effs)), my=0)
+{
+  if(is.null(dim(indep))) indep <- cbind(indep)
+  stopifnot(ncol(indep) == length(effs))
+  stopifnot(length(vx) == length(effs))
+  cors <- effs * vx / sqrt(vx) / sqrt(vy)
+  sc <- sum(cors^2)
+  if(sc >= 1)
+  {
+    print(sc)
+    stop("effects explain more than 100% of variance")
+  }
+  cors <- c(cors, sqrt(1-sum(cors^2)))
+  indep <- t(t(scale(cbind(indep, rnorm(nrow(indep))))) * cors * c(vx, 1))
+  y <- drop(scale(rowSums(indep)) * sqrt(vy)) + my
+  return(y)
+}
 
 
 
