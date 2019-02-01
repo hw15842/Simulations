@@ -1,10 +1,11 @@
 effect_model <- function(nsnp, snp_exp_var, plei_var, model=c("independent", "dependent")[1])
-{
-  snp_exp_effect <- choose_effects(nsnp, snp_exp_var)
+{ 
+  snp_exp_effect <- abs(choose_effects(nsnp, snp_exp_var)) 
   
   if(model == "dependent")
   {
     plei_effect <- snp_exp_effect[order(snp_exp_effect, decreasing=TRUE)]
+    snp_exp_effect <- snp_exp_effect[order(snp_exp_effect, decreasing=FALSE)]
     plei_effect <- plei_effect * plei_var / snp_exp_var
   } else if(model == "independent") {
     plei_effect <- choose_effects(nsnp, plei_var)
@@ -12,7 +13,10 @@ effect_model <- function(nsnp, snp_exp_var, plei_var, model=c("independent", "de
     stop("Must specify independent or dependent")
   }
   return(list(plei_effect = plei_effect, snp_exp_effect = snp_exp_effect))
-}
+} 
+
+## If you ask for ‘dependent’ it gives you the same effects as snp_exp_effect but reversed
+
 
 ## Is this actually doing what I think it is?
 ## snp_exp_effect is not in any sort of order
@@ -25,6 +29,13 @@ effect_model <- function(nsnp, snp_exp_var, plei_var, model=c("independent", "de
 ## So the pleiotropy effect sizes get ordered according to how far from zero they are
 ## Then the snp_exp_effect gets weighted according to how far from zero they are
 ## And then can reverse match those up? 
+
+## Spoke to Gib, just make it so only uses positive numbers using abs() or something 
+
+## So then will get positive integers only
+
+# Doesnt necessarily solve the NaN problem as will still want them to match up 
+# and then will get all of them being the same number...
 
 
 g<- make_geno(1000, 10, 0.5)
@@ -60,13 +71,6 @@ mr(s2)
 
 ## Independent pleiotropy
 
-pl_effs_independent <- effect_model(10, 0.2, 0.05, model="independent")
-
-
-
-
-
-
 pl_effs <- choose_effects(10, 0.05)
 pl_effs_independent <- effect_model(10, 0.2, 0.05, model="independent")
 pl_effs_dependent <- effect_model(10, 0.2, 0.05, model="dependent")
@@ -95,6 +99,12 @@ matrix_of_variables <- cbind.fill(t(pl_effs_dependent$snp_exp_effect), x1, conf)
 pl_effs_independent
 pl_effs_dependent
 
+# Simulate a random normal distribution around wach of those values and fill the columns with those? No prob not....
+
+## Need big pleiotropy to match with small effect sizes, but need lots of different effct sizes to fill matrix?
+## Or shall I just take out that scale bit of the function?? Does it need to be scaled if all the numbers are the same?
+## Could just scale the last two columns?? 
+
 
 ## Workings
 y3 <- make_phen(c(pl_effs, 0.4, 0.4), cbind(g1[,1:10], x1, conf)) 
@@ -115,8 +125,8 @@ pl_effs <- choose_effects(10, 0.05)
 
 y3 <- make_phen(c(pl_effs, 0.4, 0.4), cbind(g1[,1:10], x1, conf)) 
 
-c(pl_effs, 0.4, 0.4)
-head(cbind(g1[,1:10], x1, conf))
+eff_sizes <- c(pl_effs, 0.4, 0.4)
+variables <- (cbind(g1[,1:10], x1, conf))
 
 
 
@@ -181,3 +191,66 @@ d <- t(scale(cbind(indep, rnorm(nrow(indep))))) * cors * c(vx, 1)
 ### x <- make_phen(effs, g) doesnt have the same length for effs and g but still works
 ### x1 <- make_phen(c(effs, 0.2), cbind(g1, conf)) makes the effect sizes from combinine effs and adding 0.2 on the end, makes variables from bindin g1 and confounder together
 ## But how does it know which effect goes with which bit?? 
+
+
+
+
+
+
+### make_pheno function with the "scale" taken out
+
+make_phen <- function(effs, indep, vy=1, vx=rep(1, length(effs)), my=0)
+{
+  if(is.null(dim(indep))) indep <- cbind(indep)
+  stopifnot(ncol(indep) == length(effs))
+  stopifnot(length(vx) == length(effs))
+  cors <- effs * vx / sqrt(vx) / sqrt(vy)
+  sc <- sum(cors^2)
+  if(sc >= 1)
+  {
+    print(sc)
+    stop("effects explain more than 100% of variance")
+  }
+  cors <- c(cors, sqrt(1-sum(cors^2)))
+  indep <- t(t((cbind(indep, rnorm(nrow(indep))))) * cors * c(vx, 1))
+  y <- drop(scale(rowSums(indep)) * sqrt(vy)) + my
+  return(y)
+}
+
+
+## Does work but is it doing what I think it is doing??
+
+## MR scatter plot looks like there is more pleiotropy with the smaller effect sizes but hard to tell with such small numbers
+## need to scale up
+
+
+
+g<- make_geno(100000, 500, 0.5)
+
+g1 <- subset(g[1:(100000/2),])
+
+g2 <- subset(g[((100000/2)+1):100000,])
+
+effs <- choose_effects(500, 0.2)
+
+conf <- rnorm(50000)
+
+x1 <- make_phen(c(effs, 0.2), cbind(g1, conf))
+
+x2 <- make_phen(c(effs, 0.2), cbind(g2, conf))
+
+
+pl_effs_independent <- effect_model(500, 0.2, 0.05, model="independent")
+pl_effs_dependent <- effect_model(500, 0.2, 0.05, model="dependent")
+
+
+y1 = make_phen(c(pl_effs_dependent$plei_effect, 0.2, 0.2), cbind.fill(t(pl_effs_dependent$snp_exp_effect), x1, conf))
+
+
+dat <- get_effs(x1,y1,g1)
+
+res<-mr(dat)
+
+mr_scatter_plot(res, dat)
+
+### Looks like it works??there are a lot more smaller effects though is that a problem? 
