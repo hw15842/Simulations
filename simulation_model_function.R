@@ -53,13 +53,13 @@ runsim <- function (nsample, nsnp, snp_exp_var, plei_var, conf_exp_var, exp_out_
   y1 <- make_phen(c(pl_effs$plei_effect, exp_out_var, conf_out_var), cbind(g1, x1, conf1))
   dat1 <- get_effs(x1,y1,g1)
   s1 <- subset(dat1, pval.exposure < 5e-8)
-  res1 <- mr(dat1, method_list = "mr_ivw") ## one sample MR 
+  res1 <- mr(s1, method_list = "mr_ivw") ## one sample MR 
   
   y2 <- make_phen(c(pl_effs$plei_effect, exp_out_var, conf_out_var), cbind(g2, x2, conf2))
   dat2 <- get_effs(x2,y2,g2)
   s2 <- subset(dat2, SNP %in% s1$SNP)
   num_sig_snps <- nrow(s2)
-  res2 <- mr(dat2, method_list = "mr_ivw")
+  res2 <- mr(s2, method_list = "mr_ivw")
   
   het1 <- mr_heterogeneity(s1, method_list="mr_ivw")
   het2 <- mr_heterogeneity(s2, method_list="mr_ivw")
