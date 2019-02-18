@@ -14,7 +14,7 @@ conf_out_var <-
 
    
 
-  effect_model <- function(nsnp, snp_exp_var, plei_var, model=c("none", "independent", "dependent")[1])
+  effect_model <- function(nsnp, snp_exp_var, plei_var, noise_var, model=c("none", "independent", "dependent")[1])
   { 
     snp_exp_effect <- abs(choose_effects(nsnp, snp_exp_var)) 
     
@@ -23,6 +23,8 @@ conf_out_var <-
       plei_effect <- abs(choose_effects(nsnp, plei_var))
       snp_exp_effect <- snp_exp_effect[order(snp_exp_effect, decreasing=FALSE)]
       plei_effect <- plei_effect[order(plei_effect, decreasing=TRUE)]
+      noise_effect <- choose_effects(nsnp, noise_var)
+      plei_effect <- rowSums(cbind(plei_effect,noise_effect))
       #plei_effect <- plei_effect * plei_var / snp_exp_var ## Could add noise (multiple by number between0 and 1), make smaller then add noise (x0.8 +0.8)
     } else if(model == "independent") {
       plei_effect <- abs(choose_effects(nsnp, plei_var))
@@ -35,10 +37,18 @@ conf_out_var <-
   } 
    
 
+## so remake a variable with same var as snp_exp, make it around zero, make it smaller, add it on
+
 z <- effect_model(500, 0.2, 0.1, model="none") 
 y <- effect_model(500, 0.2, 0.1, model="independent")
-x <- effect_model(500, 0.2, 0.05, model="dependent")
-  
+x <- effect_model(500, 0.2, 0.1, 0.0005, model="dependent")
+
+noise_effect <- choose_effects(500, 0.0005)  
+snp_exp_effect <- abs(choose_effects(500, 0.2)) 
+snp_exp_effect <- snp_exp_effect[order(snp_exp_effect, decreasing=FALSE)]
+snp_exp_effect <- rowSums(cbind(snp_exp_effect,noise_effect))
+
+
   
   ## MAF not that important will always be 0.5, need conf1 and conf2
   ## get out res$IVW and heterogeneity
@@ -146,7 +156,7 @@ mr_method_list()
 
 a <- runsim(40000, 100, 0.2, 0.05, 0.1, 0.2, 0.2, "none")
 b <- runsim(40000, 100, 0.2, 0.05, 0.1, 0.2, 0.2, "independent")
-c <- runsim(40000, 100, 0.2, 0.05, 0.1, 0.2, 0.2, "dependent")
+c <- runsim2(40000, 100, 0.2, 0.05, 0.1, 0.2, 0.2, "dependent")
 
 c1 <- runsim(40000, 100, 0.2, 0.05, 0.1, 0.2, 0.2, "dependent")
 c2 <- runsim(40000, 100, 0.2, 0.05, 0.1, 0.2, 0.2, "dependent")
