@@ -14,7 +14,7 @@ conf_out_var <-
 
    
 
-  effect_model <- function(nsnp, snp_exp_var, plei_var, noise_var, model=c("none", "independent", "dependent")[1])
+  effect_model <- function(nsnp, snp_exp_var, plei_var, model=c("none", "independent", "dependent")[1])
   { 
     snp_exp_effect <- abs(choose_effects(nsnp, snp_exp_var)) 
     
@@ -23,8 +23,10 @@ conf_out_var <-
       plei_effect <- abs(choose_effects(nsnp, plei_var))
       snp_exp_effect <- snp_exp_effect[order(snp_exp_effect, decreasing=FALSE)]
       plei_effect <- plei_effect[order(plei_effect, decreasing=TRUE)]
-      noise_effect <- choose_effects(nsnp, noise_var)
+      noise_effect <- choose_effects(nsnp, snp_exp_var)
+      noise_effect <- noise_effect/10
       plei_effect <- rowSums(cbind(plei_effect,noise_effect))
+      snp_exp_effect <- rowSums(cbind(snp_exp_effect,noise_effect))
       #plei_effect <- plei_effect * plei_var / snp_exp_var ## Could add noise (multiple by number between0 and 1), make smaller then add noise (x0.8 +0.8)
     } else if(model == "independent") {
       plei_effect <- abs(choose_effects(nsnp, plei_var))
@@ -39,15 +41,35 @@ conf_out_var <-
 
 ## so remake a variable with same var as snp_exp, make it around zero, make it smaller, add it on
 
+
+#### Thought Process ####
+## we want the noise effect to be related to the snp_exp_var becuase other wise the noise will be larger for a smaller snp_exp_var
+## so use the same snp-exp-var but then need to make it smaller
+## so have just divided it by 10 to get the noise variable, but this could be changed to make more or less noise if need be
+## I have added noise to both the snp_exp_effect and the plei_effect because if only added to one of them,
+## the larger numbers are less effected by noise and we get the noise effecting one side of the graph more than the other
+## Still get this slightly as the plei_var is smaller than the snp_exp_var, but i think this is ok? 
+##########
+## No, need to divide it by a number related to the snp_exp_var otherwise get a lot more noise for the larger snp_exp_var
+
 z <- effect_model(500, 0.2, 0.1, model="none") 
 y <- effect_model(500, 0.2, 0.1, model="independent")
-x <- effect_model(500, 0.2, 0.1, 0.0005, model="dependent")
+x <- effect_model(500, 0.1, 0.05, model="dependent")
 
-noise_effect <- choose_effects(500, 0.0005)  
+
+plot(x$plei_effect, x$snp_exp_effect)
+
+noise_effect <- choose_effects(500, 0.2)  
+noise_effect <- noise_effect/10
 snp_exp_effect <- abs(choose_effects(500, 0.2)) 
 snp_exp_effect <- snp_exp_effect[order(snp_exp_effect, decreasing=FALSE)]
 snp_exp_effect <- rowSums(cbind(snp_exp_effect,noise_effect))
 
+## With dividing by 10...
+## As plei_var gets bigger, noise gets less spread
+## As snp_exp_var gets bigger, the noise gets more spread
+
+## Need to get the noise to be spread evenly...... 
 
   
   ## MAF not that important will always be 0.5, need conf1 and conf2
