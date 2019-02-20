@@ -73,22 +73,19 @@ runsim <- function (nsample, nsnp, snp_exp_var, plei_var, conf_exp_var, exp_out_
   y2 <- make_phen(c(pl_effs$plei_effect, exp_out_var, conf_out_var), cbind(g2, x2, conf2))
   dat2 <- get_effs(x2,y2,g2)
   s2 <- subset(dat2, SNP %in% s1$SNP)
-  res2 <- mr(s2, method_list = "mr_ivw") ## two sample MR
-  
+  res2 <- mr(s2, method_list = "mr_ivw")
   het1 <- mr_heterogeneity(s1, method_list="mr_ivw")
+  het1 <- het1[6:8]
   het2 <- mr_heterogeneity(s2, method_list="mr_ivw")
-  
-  res1$type <- "one sample"
-  res2$type <- "two sample"
-  
-  het1$type <- "one sample"
-  het2$type <- "two sample"
-  
-  mr_results <- rbind(res1=res1, res2=res2)
-  heterogeneity <- rbind(het1=het1, het2=het2)
-  
-  return(list(mr_results=mr_results, heterogeneity=heterogeneity))
+  het2 <- het2[6:8]
+  mr_results1 <- cbind(res1, het1)
+  mr_results2 <- cbind(res2, het2)
+  mr_results1$type <-"one sample"
+  mr_results2$type <-"two sample"
+  mr_results <- rbind(mr_results1, mr_results2)
+  return(mr_results)
 }   
+
 
 ########################
 ## Examples of runsim ##
